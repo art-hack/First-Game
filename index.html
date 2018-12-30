@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="data.js"></script>
+        <script src="phaser.js"></script>
+    </head>
+    <body>
+        <style>
+            body{
+                margin: 0px;
+            }
+            canvas{
+                cursor: none;
+            }
+        </style> 
+        <script>
+            var game = new Phaser.Game(window.innerWidth,window.innerHeight,Phaser.AUTO,'phaser-example', { preload, create, update, render});
+            var player;
+            var space;
+            var score=0;
+            var p=0,q=0;
+            var life =3;
+            var bullets;
+            var cursors ;
+            function preload(){
+                game.load.image('coin', 'coin.png');
+                game.load.image('jet', 'jet.png');
+                game.load.image('space', 'starfield.png');
+                game.load.image('starfield1', 'starfield1.png');
+                game.load.image('space2', 'starfield2.png');
+                game.load.image('bomb', 'bomb.png');
+                game.load.image('bullet', 'bullet.png');
+                game.load.audio('sound', 'metal.wav');
+                game.load.audio('bsound', 'bomb.wav');
+            }
+            function create(){
+                game.physics.startSystem(Phaser.Physics.ARCADE);
+                space = game.add.tileSprite(0,0,window.innerWidth,window.innerHeight,'space2');
+                player = game.add.sprite(400, 400, 'jet');
+                player.anchor.set(0.5,0.5);
+                game.physics.enable(player);
+                cursors =game.input.keyboard.createCursorKeys();
+                coins = game.add.group();
+                coin_sound = game.add.audio('sound');
+                bomb_sound = game.add.audio('bsound');
+                
+                for(let i =0;i<10;i++){
+                    coin = coins.create(window.innerWidth*Math.random(),Math.random()*window.innerHeight,'coin');
+                    coin.anchor.set(0.5,0.5);
+                    game.physics.arcade.enable(coin);
+                    coin.body.mass=-1000;
+                }   
+                
+                bombs = game.add.group();
+                for(let i =0;i<2;i++){
+                    bomb = bombs.create(window.innerWidth*Math.random(),Math.random()*window.innerHeight,'bomb');
+                    bomb.anchor.set(0.5,0.5);
+                    game.physics.arcade.enable(bomb);
+                    bomb.body.mass=-1000;
+                }
+                bullets = game.add.group();
+
+            }
+            function update(){
+                if(cursors.up.isDown){
+                    shoot();
+                }
+                game.physics.arcade.collide(player, coins, handler, processor, this);
+                game.physics.arcade.collide(player, bombs, handler, processor2, this);
+                game.physics.arcade.collide(bullets, coins, handler, processor, this);
+                game.physics.arcade.collide(bullets, bombs, handler, processor2, this);
+                
+
+                player.body.velocity.x = 5*(game.input.x-player.x);
+                player.body.velocity.y = 5*(game.input.y-player.y);
+                
+                for(let i =0;i<10;i++){
+                    coins.children[i].y+=1;
+                    coins.children[i].y=(coins.children[i].y)%window.innerHeight;
+                }
+                
+                for(let i =0;i<2;i++){
+                    bombs.children[i].y+=1;
+                    bombs.children[i].y=(bombs.children[i].y)%window.innerHeight;
+                }
+
+                space.tilePosition.y+=10;
+                degree = Math.atan2(game.input.y-player.y,game.input.x-player.x)*180/Math.PI +90;
+                player.angle = degree;
+
+                killextra();
+            }
+
+            function handler(p, c){
+                return true;
+            }
+
+            function processor(p, c){
+                console.log("Boom");
+                if(life)
+                    score++;
+                else{
+                    score = "Final Score: "+score;
+                }
+                c.x = window.innerWidth*Math.random()*0.8+0.1*window.innerWidth;
+                c.y = window.innerHeight*Math.random()*0.8+0.1*window.innerHeight;
+                coin_sound.play();
+            }
+            function processor2(p, b){
+                if(life)
+                    score-=10;
+                if(life)
+                    life--;
+                b.x = window.innerWidth*Math.random()*0.8+0.1*window.innerWidth;
+                b.y = window.innerHeight*Math.random()*0.8+0.1*window.innerHeight;
+                bomb_sound.play();
+            }
+
+            function render(){
+                game.debug.text("Score: "+score,100,100);
+                game.debug.text("Life Left: "+life,window.innerWidth-250,100);
+                // bullets.children.forEach(bullet => {
+                //     bullet.scale.x+=0.1;
+                //     bullet.scale.y+=0.1;
+                // });
+            }
+
+            function shoot(){
+                
+                bullet = bullets.create(player.x,player.y,'bullet');
+                bullet.anchor.set(0.5,0.5);
+                game.physics.enable(bullet);
+
+                bullet.body.velocity.x= 1500*Math.cos((player.angle-90)*Math.PI/180);
+                bullet.body.velocity.y= 1500*Math.sin((player.angle-90)*Math.PI/180);
+            }
+
+            function killextra(){
+                for(let i=0;i<bullets.children.length;i++)
+                {
+                    if(bullets.children[i].x<0 || bullets.children[i].x > window.innerWidth || bullets.children[i].y<0 || bullets.children[i].y>window.innerHeight || (Math.abs(bullets.children[i].body.velocity.x)<500 && Math.abs(bullets.children[i].body.velocity.y)<500)){
+                        bullets.children[i].kill();
+                        console.log("Killed one");
+                        bullets.remove(bullets.children[i]);
+                    }
+                }
+                    
+            }
+        </script>
+    </body>
+</html>
